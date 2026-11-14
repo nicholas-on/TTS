@@ -12,7 +12,7 @@ The full plan, with milestones, data choices and risks, is in [PLAN.md](PLAN.md)
 |---|---|---|
 | 0 | Inspect the data | notebook ready, not yet run on real data |
 | 1 | Prepare the chapter corpus | notebook ready, not yet run on real data |
-| 2 | CTC recogniser, alignment, segmentation | not started |
+| 2 | CTC recogniser, alignment, segmentation | notebook ready, not yet run on real data |
 | 3 | Acoustic model | not started |
 | 4 | Vocoder | not started |
 | 5 | Accuracy evaluation | not started |
@@ -28,7 +28,8 @@ The full plan, with milestones, data choices and risks, is in [PLAN.md](PLAN.md)
 3. Run the cells in order. The first cell clones this repository, installs it,
    and mounts Google Drive.
 
-Run the notebooks in order: `00_inspect_data` then `01_prepare_data`. Notebook
+Run the notebooks in order: `00_inspect_data`, `01_prepare_data`, then
+`02_recogniser_and_alignment` (needs a GPU runtime). Notebook
 00 ends with a notes cell; apply what it finds to `configs/data.yaml` and commit
 before running notebook 01.
 
@@ -39,6 +40,8 @@ Data lives on Google Drive under `MyDrive/bibletts/` (change this in
 bibletts/
   raw/                 downloaded originals and sources.json (notebook 00)
   prepared/            chapters_v1.tar and the config used (notebook 01)
+  ctc/                 recogniser checkpoints and clip lists; clips_final.jsonl
+                       holds the clips with TTS durations (notebook 02)
 ```
 
 ## Layout
@@ -46,6 +49,7 @@ bibletts/
 ```
 PLAN.md                the plan
 configs/data.yaml      data, audio, text and split settings
+configs/ctc.yaml       recogniser, training, segmentation and alignment settings
 src/bibletts/
   audio.py             decoding, mel-spectrograms, Griffin-Lim, loudness, pauses
   text.py              text cleaning, numbers to words, token vocabularies
@@ -54,7 +58,15 @@ src/bibletts/
   corpus.py            splits, chapter preparation, manifest, Drive archives
   viz.py               plots used by the notebooks
   colab.py             Colab helpers
-  ctc/ acoustic/ vocoder/   later milestones (empty for now)
+  evaluate.py          character and word error rates
+  ctc/
+    model.py           the recogniser (conv + bidirectional GRU, CTC)
+    data.py            mel caching, clip datasets, batching, SpecAugment
+    train.py           training with checkpoint and resume
+    align.py           forced alignment (Viterbi on the CTC graph)
+    segment.py         cutting chapters into clips, durations for TTS
+    pipeline.py        the milestone-2 steps the notebook calls
+  acoustic/ vocoder/   later milestones (empty for now)
 notebooks/             one notebook per milestone
 tests/                 checks that run on CPU in a few seconds
 ```

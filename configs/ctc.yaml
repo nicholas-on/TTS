@@ -1,0 +1,59 @@
+# Milestone 2: the CTC recogniser, forced alignment and segmentation.
+# See PLAN.md section 4, milestone 2. Times are rough guesses for a T4 GPU.
+
+model:
+  conv_channels: 256
+  conv_kernel: 5
+  gru_hidden: 320       # per direction
+  gru_layers: 4
+  dropout: 0.2
+
+train:
+  lr: 0.001
+  weight_decay: 0.01
+  warmup_steps: 500
+  batch_seconds: 400    # total audio per batch; batches are built by length
+  grad_clip: 5.0
+  amp: true             # mixed precision on GPU
+  checkpoint_every: 500 # steps
+  eval_every: 500       # steps
+  keep_checkpoints: 3
+  specaugment:
+    freq_masks: 2
+    freq_width: 12      # mel bands
+    time_masks: 5
+    time_width: 0.04    # fraction of the clip, per mask
+  num_workers: 2
+  seed: 0
+
+# Each round trains a fresh model. "stride" sets the model's output frame
+# rate: 2 = half the mel frame rate (cheaper, used to align whole chapters
+# in round 1), 1 = full rate (needed for durations).
+rounds:
+  round0:
+    stride: 2
+    epochs: 40
+  round1:
+    stride: 1
+    epochs: 60
+  round2:
+    stride: 1
+    epochs: 60
+
+segment:
+  # Round 0: rough clips cut by assuming a constant reading rate.
+  rough_min_s: 15
+  rough_target_s: 25
+  rough_max_s: 35
+  rough_pause_tolerance_s: 3.0
+  # Rounds 1+: clips cut at aligned verse or sentence ends that fall in a pause.
+  min_s: 2.0
+  target_s: 8.0
+  max_s: 12.0
+  edge_silence_s: 0.15  # silence kept at each end of a clip
+  cut_at: [".", "?", "!", ";", "verse"]   # boundaries where a clip may end
+  drop_fraction: 0.03   # worst-scoring clips removed from each split
+
+align:
+  window_s: 30          # chapters are run through the model in windows ...
+  context_s: 5          # ... with this much extra audio either side

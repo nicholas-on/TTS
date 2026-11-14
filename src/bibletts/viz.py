@@ -39,3 +39,23 @@ def plot_pauses(audio, sample_rate: int, pauses, start_s: float = 0.0, end_s: fl
             ax.axvspan(max(s, start_s), min(e, end_s), color="orange", alpha=0.35)
     ax.set(xlim=(start_s, b / sample_rate), xlabel="seconds", title=title)
     return ax
+
+
+def plot_durations(log_mel, token_labels: list[str], durations: list[int], sample_rate: int,
+                   hop_length: int, title: str = "", ax=None):
+    """Mel-spectrogram with each token's span marked: the TTS model's training target.
+
+    Each label sits at the start of its token's frames; dashed lines mark the
+    boundaries. Character boundaries should fall roughly where the sound changes.
+    """
+    log_mel = np.asarray(log_mel)
+    ax = ax or plt.subplots(figsize=(max(12, len(token_labels) * 0.18), 3.5))[1]
+    ax.imshow(log_mel, origin="lower", aspect="auto")
+    edges = np.concatenate([[0], np.cumsum(durations)])
+    for label, a, b in zip(token_labels, edges[:-1], edges[1:]):
+        if b > a:
+            ax.axvline(a, color="w", lw=0.5, ls="--")
+            ax.text((a + b) / 2, log_mel.shape[0] + 1, label, ha="center", va="bottom", fontsize=7)
+    ax.set(xlabel=f"mel frames ({1000 * hop_length / sample_rate:.1f} ms each)", ylabel="mel band")
+    ax.set_title(title, pad=14)
+    return ax

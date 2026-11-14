@@ -205,9 +205,9 @@ low-resource problem.
 1. Run the round-0 model over each whole chapter to get per-frame character
    probabilities.
 2. Find the best path through the whole chapter's text with the Viterbi
-   algorithm (forced alignment). Write a simple version yourself on a short clip
-   to understand it, then use `torchaudio.functional.forced_align` for
-   chapter-length inputs. It is an algorithm, not a pretrained model.
+   algorithm (forced alignment), implemented in `src/bibletts/ctc/align.py`
+   (about 2.5 s for a 5-minute chapter). It is an algorithm, not a pretrained
+   model.
 3. Every character now has a time. Cut at verse or sentence ends that coincide
    with a pause, aiming for 2–12 seconds.
 4. Score each clip by its average alignment probability and drop the worst few
