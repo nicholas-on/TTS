@@ -1,0 +1,11 @@
+__pycache__/
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+.venv/
+# Data and outputs live on Google Drive, never in the repo.
+*.wav
+*.mp3
+*.ogg
+*.tar
+data/
