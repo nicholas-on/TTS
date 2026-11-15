@@ -117,7 +117,7 @@ def train_round(train_segments: list[dict], dev_segments: list[dict], mels: dict
         torch.save({
             "model": model.state_dict(), "optimiser": optimiser.state_dict(),
             "scaler": scaler.state_dict(), "step": step, "epoch": epoch, "batch": batch,
-            "alphabet": "".join(vocab.tokens[2:]), "model_cfg": cfg["model"], "stride": stride,
+            "alphabet": vocab.alphabet, "model_cfg": cfg["model"], "stride": stride,
             "n_mels": int(mel_mean.numel()), "hop_s": hop_s,
         }, path)
 

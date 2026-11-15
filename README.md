@@ -13,25 +13,36 @@ The full plan, with milestones, data choices and risks, is in [PLAN.md](PLAN.md)
 | 0 | Inspect the data | notebook ready, not yet run on real data |
 | 1 | Prepare the chapter corpus | notebook ready, not yet run on real data |
 | 2 | CTC recogniser, alignment, segmentation | notebook ready, not yet run on real data |
-| 3 | Acoustic model | not started |
+| 3 | Acoustic model, text to speech (Griffin-Lim playback) | notebook ready, not yet run on real data |
 | 4 | Vocoder | not started |
 | 5 | Accuracy evaluation | not started |
 | 6 | Whole-chapter reading | not started |
 
-## Running on Google Colab
+## Running the proof of concept on Google Colab
 
-1. Open a notebook from `notebooks/` in Colab (File → Open notebook → GitHub,
-   or upload it).
-2. If this repository is private, create a fine-grained GitHub token with
+1. Go to https://colab.research.google.com, choose File → Open notebook →
+   GitHub, enter `nicholas-on/TTS`, and open a notebook from `notebooks/`.
+   For a private repository, tick "Include private repos".
+2. If the repository is private, create a fine-grained GitHub token with
    read-only access to it, and add it in Colab's Secrets panel (key icon, left
    sidebar) as `GITHUB_TOKEN`.
 3. Run the cells in order. The first cell clones this repository, installs it,
-   and mounts Google Drive.
+   and mounts Google Drive. Everything worth keeping is saved to Drive, so
+   each notebook can run in a fresh session.
 
-Run the notebooks in order: `00_inspect_data`, `01_prepare_data`, then
-`02_recogniser_and_alignment` (needs a GPU runtime). Notebook
-00 ends with a notes cell; apply what it finds to `configs/data.yaml` and commit
-before running notebook 01.
+Run the notebooks in this order:
+
+| Notebook | Runtime | Rough time | Produces |
+|---|---|---|---|
+| `00_inspect_data` | CPU | 30 min + listening | downloads; notes for `configs/data.yaml` |
+| `01_prepare_data` | CPU | under 1 h | prepared chapters archive |
+| `02_recogniser_and_alignment` | T4 GPU | 2–4 h | clips with per-character durations |
+| `03_acoustic_model` | T4 GPU | several hours | the TTS model; speech from any text |
+
+Times are guesses until the first real run. Notebook 00 ends with a notes
+cell; apply what it finds to `configs/data.yaml` and commit before running
+notebook 01. Training cells resume from their last checkpoint after a
+disconnect: rerun the setup cells and the training cell.
 
 Data lives on Google Drive under `MyDrive/bibletts/` (change this in
 `configs/data.yaml`):
@@ -42,6 +53,8 @@ bibletts/
   prepared/            chapters_v1.tar and the config used (notebook 01)
   ctc/                 recogniser checkpoints and clip lists; clips_final.jsonl
                        holds the clips with TTS durations (notebook 02)
+  acoustic/            acoustic model checkpoints, training samples, and
+                       outputs/ with synthesised speech (notebook 03)
 ```
 
 ## Layout
@@ -50,6 +63,7 @@ bibletts/
 PLAN.md                the plan
 configs/data.yaml      data, audio, text and split settings
 configs/ctc.yaml       recogniser, training, segmentation and alignment settings
+configs/acoustic.yaml  acoustic model, training and synthesis settings
 src/bibletts/
   audio.py             decoding, mel-spectrograms, Griffin-Lim, loudness, pauses
   text.py              text cleaning, numbers to words, token vocabularies
@@ -66,7 +80,12 @@ src/bibletts/
     align.py           forced alignment (Viterbi on the CTC graph)
     segment.py         cutting chapters into clips, durations for TTS
     pipeline.py        the milestone-2 steps the notebook calls
-  acoustic/ vocoder/   later milestones (empty for now)
+  acoustic/
+    model.py           FastSpeech-style model: encoder, durations, decoder
+    data.py            clip dataset and batching
+    train.py           training with checkpoint and resume, CER on synthesised speech
+    synthesis.py       text of any length to speech (Griffin-Lim for now)
+  vocoder/             milestone 4 (empty for now)
 notebooks/             one notebook per milestone
 tests/                 checks that run on CPU in a few seconds
 ```

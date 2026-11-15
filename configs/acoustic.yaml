@@ -1,0 +1,40 @@
+# Milestone 3: the acoustic model. See PLAN.md section 4, milestone 3.
+
+model:
+  dim: 256
+  heads: 2
+  ffn_dim: 1024
+  kernel: 9
+  encoder_layers: 4
+  decoder_layers: 4
+  duration_hidden: 256
+  dropout: 0.2
+
+train:
+  lr: 0.001
+  weight_decay: 0.01
+  warmup_steps: 2000
+  batch_seconds: 160    # total audio per batch
+  epochs: 150           # roughly 30k steps on 10 h; a guess, see the notebook
+  grad_clip: 1.0
+  amp: true
+  checkpoint_every: 1000
+  eval_every: 2000      # dev loss, recogniser CER on synthesised mels, audio samples
+  eval_clips: 40        # dev clips used for the CER check
+  keep_checkpoints: 3
+  seed: 0
+
+overfit:                # quick check that the code can learn, before the long run
+  clips: 10
+  steps: 1500
+
+synthesis:
+  pace: 1.0             # above 1 reads slower
+  griffin_lim_iters: 60
+  pause_s:              # silence inserted between synthesised sentences or verses
+    ".": 0.45
+    "?": 0.45
+    "!": 0.45
+    ";": 0.3
+    ",": 0.2
+    " ": 0.1

@@ -194,6 +194,7 @@ class TTSVocab:
     """
 
     def __init__(self, alphabet: str):
+        self.alphabet = alphabet
         self.specials = ["<pad>", "<bos>", "<eos>"]
         self.tokens = self.specials + BOUNDARIES + list(alphabet)
         self.index = {t: i for i, t in enumerate(self.tokens)}
@@ -220,6 +221,7 @@ class CTCVocab:
     """Tokens for the recogniser: blank, space, letters."""
 
     def __init__(self, alphabet: str):
+        self.alphabet = alphabet
         self.tokens = ["<blank>", " "] + list(alphabet)
         self.index = {t: i for i, t in enumerate(self.tokens)}
         self.blank = 0
