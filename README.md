@@ -23,9 +23,15 @@ The full plan, with milestones, data choices and risks, is in [PLAN.md](PLAN.md)
 1. Go to https://colab.research.google.com, choose File → Open notebook →
    GitHub, enter `nicholas-on/TTS`, and open a notebook from `notebooks/`.
    For a private repository, tick "Include private repos".
-2. If the repository is private, create a fine-grained GitHub token with
-   read-only access to it, and add it in Colab's Secrets panel (key icon, left
-   sidebar) as `GITHUB_TOKEN`.
+2. The repository is private, so the notebooks need a GitHub token to clone it.
+   One-time setup:
+   - On GitHub: Settings → Developer settings → Personal access tokens →
+     Fine-grained tokens → Generate new token. Repository access: "Only
+     select repositories" → `nicholas-on/TTS`. Permissions → Repository
+     permissions → Contents: Read-only. Generate, and copy the token.
+   - In Colab: key icon in the left sidebar (Secrets) → Add new secret.
+     Name `GITHUB_TOKEN`, value the token. Switch on "Notebook access"; Colab
+     asks for this once per notebook.
 3. Run the cells in order. The first cell clones this repository, installs it,
    and mounts Google Drive. Everything worth keeping is saved to Drive, so
    each notebook can run in a fresh session.
