@@ -58,6 +58,13 @@ def test_overlapping_held_out_splits_fail():
     ("1190 First Corinthians-Thirteen.mp3", ("1CO", 13)),
     ("0315 Second Kings-Five.mp3", ("2KI", 5)),
     ("Third John.mp3", ("3JN", 1)),
+    # eBible eng-web/audio layout seen in notebook 00.
+    ("09_37_First_Samuel_Chapter_One.mp3", ("1SA", 1)),
+    ("09_51_First_Samuel_Chapter_Fifteen.mp3", ("1SA", 15)),
+    ("40_930_Matthew_Chapter_Twenty_Eight.mp3", ("MAT", 28)),
+    ("19_600_Psalms_Chapter_One_Hundred_Nineteen.mp3", ("PSA", 119)),
+    ("43_990_John_Chapter_Three.mp3", ("JHN", 3)),
+    ("Gal.mp3", None),   # a whole book in one file: not usable as chapters
     ("readme.mp3", None),
 ])
 def test_guess_book_chapter(name, expected):

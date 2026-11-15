@@ -98,6 +98,9 @@ _NUMBER_WORDS = {w: i for i, w in enumerate(
 _NUMBER_WORDS.update({w: 10 * i for i, w in enumerate(
     "_ _ twenty thirty forty fifty sixty seventy eighty ninety".split()) if w != "_"})
 
+# Words that may sit between a book name and its chapter number.
+_FILLER = {"chapter", "chap", "ch", "chapitre"}
+
 # A copy marker such as "Psalm 23 (1)" or "Psalm 23 (2)" at the end of a name.
 _COPY_MARKER = re.compile(r"\s*\(\d+\)$")
 
@@ -130,7 +133,8 @@ def guess_book_chapter(name: str, regex: str | None = None) -> tuple[str, int] |
     Tries, in order:
     1. `regex`, if given, with named groups "book" and "chapter".
     2. A book code or book name followed by a chapter number, in digits or
-       in words: "MAT_05", "Matthew 5", "1Corinthians_13", "Psalms-Seventy One".
+       in words, optionally after the word "Chapter": "MAT_05", "Matthew 5",
+       "1Corinthians_13", "Psalms-Seventy One", "First_Samuel_Chapter_One".
     3. Two numbers, book number (1-66) then chapter: "40_005".
     A copy marker at the end, like " (1)", is ignored. Returns None if nothing
     matches. Always check the result by eye.
@@ -157,6 +161,8 @@ def guess_book_chapter(name: str, regex: str | None = None) -> tuple[str, int] |
             if not code:
                 continue
             rest = pieces[i + width :]
+            while rest and rest[0].lower() in _FILLER:   # "Matthew_Chapter_Five"
+                rest = rest[1:]
             spelled = words_to_number(rest)
             if spelled and 1 <= spelled[0] <= CHAPTERS[code]:
                 return code, spelled[0]
