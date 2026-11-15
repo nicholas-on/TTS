@@ -7,11 +7,16 @@ source:
   # Check in milestone 0.
   text_url: https://ebible.org/Scriptures/eng-web_vpl.zip
 
-  # Pages that link to the audio. Notebook 00 lists every audio link on them.
-  # Check in milestone 0.
+  # Candidate pages that link to audio. Each may be a different recording
+  # (and a different reader), so notebook 00 compares them and only ONE is
+  # used. Check in milestone 0.
   audio_pages:
     - https://ebible.org/eng-web/audio/
     - https://ebible.org/webaudio/mp3.htm
+
+  # The page chosen in notebook 00 (one of audio_pages). While null, the
+  # notebook uses whichever page covers the most chapters in the splits.
+  audio_page: null
 
   # If the site only offers one large zip of all audio, put its URL here.
   audio_zip_url: null

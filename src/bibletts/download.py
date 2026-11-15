@@ -92,17 +92,51 @@ def find_links(page_url: str, extensions: tuple[str, ...] = AUDIO_EXTENSIONS + (
     return list(dict.fromkeys(found))
 
 
+_NUMBER_WORDS = {w: i for i, w in enumerate(
+    "zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen "
+    "fifteen sixteen seventeen eighteen nineteen".split())}
+_NUMBER_WORDS.update({w: 10 * i for i, w in enumerate(
+    "_ _ twenty thirty forty fifty sixty seventy eighty ninety".split()) if w != "_"})
+
+# A copy marker such as "Psalm 23 (1)" or "Psalm 23 (2)" at the end of a name.
+_COPY_MARKER = re.compile(r"\s*\(\d+\)$")
+
+
+def words_to_number(words: list[str]) -> tuple[int, int] | None:
+    """Read an English number at the start of `words`: ["Seventy", "One", "x"] -> (71, 2).
+
+    Returns (value, number of words used), or None if the first word is not a number.
+    Handles "One Hundred (And) Nineteen".
+    """
+    total, current, used = 0, 0, 0
+    for i, w in enumerate(words):
+        w = w.lower()
+        if w in _NUMBER_WORDS:
+            current += _NUMBER_WORDS[w]
+        elif w == "hundred" and i > 0:
+            current = max(current, 1) * 100
+        elif w == "and" and 0 < i < len(words) - 1 and words[i + 1].lower() in _NUMBER_WORDS:
+            pass
+        else:
+            break
+        used = i + 1
+    total += current
+    return (total, used) if used else None
+
+
 def guess_book_chapter(name: str, regex: str | None = None) -> tuple[str, int] | None:
     """Work out (book code, chapter) from an audio file name or URL.
 
     Tries, in order:
     1. `regex`, if given, with named groups "book" and "chapter".
-    2. A book code or book name followed later by a number: "MAT_05",
-       "Matthew 5", "1Corinthians_13".
+    2. A book code or book name followed by a chapter number, in digits or
+       in words: "MAT_05", "Matthew 5", "1Corinthians_13", "Psalms-Seventy One".
     3. Two numbers, book number (1-66) then chapter: "40_005".
-    Returns None if nothing matches. Always check the result by eye.
+    A copy marker at the end, like " (1)", is ignored. Returns None if nothing
+    matches. Always check the result by eye.
     """
     stem = Path(unquote(urlparse(name).path or name)).stem
+    stem = _COPY_MARKER.sub("", stem)
     if regex:
         m = re.search(regex, stem)
         if m:
@@ -111,8 +145,8 @@ def guess_book_chapter(name: str, regex: str | None = None) -> tuple[str, int] |
                 return code, int(m.group("chapter"))
         return None
 
-    # Strategy 2: split into alternating word / number pieces and look for a
-    # book name made of one or two consecutive pieces ("1", "Corinthians").
+    # Strategy 2: split into word and number pieces and look for a book name
+    # made of up to three consecutive pieces ("1", "Corinthians").
     pieces = re.findall(r"[A-Za-z]+|\d+", stem)
     for i in range(len(pieces)):
         for width in (3, 2, 1):
@@ -122,8 +156,11 @@ def guess_book_chapter(name: str, regex: str | None = None) -> tuple[str, int] |
             code = book_code(cand)
             if not code:
                 continue
-            numbers = [int(p) for p in pieces[i + width :] if p.isdigit()]
-            for n in numbers:
+            rest = pieces[i + width :]
+            spelled = words_to_number(rest)
+            if spelled and 1 <= spelled[0] <= CHAPTERS[code]:
+                return code, spelled[0]
+            for n in (int(p) for p in rest if p.isdigit()):
                 if 1 <= n <= CHAPTERS[code]:
                     return code, n
             if CHAPTERS[code] == 1:
@@ -138,22 +175,29 @@ def guess_book_chapter(name: str, regex: str | None = None) -> tuple[str, int] |
     return None
 
 
-def catalogue(names: list[str], regex: str | None = None) -> tuple[dict, list[str]]:
+def catalogue(names: list[str], regex: str | None = None
+              ) -> tuple[dict, list[str], dict]:
     """Map many audio names to (book, chapter).
 
-    Returns ({(book, chapter): name}, [names that could not be matched]).
-    Two files claiming the same chapter is reported as an error, because it
-    usually means the guesser read the name wrongly.
+    Returns ({(book, chapter): name}, [names not matched], {(book, chapter):
+    [every name that matched it]} for chapters matched more than once).
+    When several names match one chapter, the one without a copy marker like
+    " (1)" is used, then the shortest. Many duplicates usually means the
+    names were misread: check them, and set source.audio_filename_regex.
     """
-    found: dict[tuple[str, int], str] = {}
+    claims: dict[tuple[str, int], list[str]] = {}
     unmatched: list[str] = []
     for name in names:
         key = guess_book_chapter(name, regex)
         if key is None:
             unmatched.append(name)
-        elif key in found:
-            raise ValueError(f"Both {found[key]} and {name} look like {key}. "
-                             "Set source.audio_filename_regex in the config.")
         else:
-            found[key] = name
-    return found, unmatched
+            claims.setdefault(key, []).append(name)
+
+    def preference(n: str):
+        stem = Path(unquote(urlparse(n).path or n)).stem
+        return (bool(_COPY_MARKER.search(stem)), len(n), n)
+
+    found = {k: min(v, key=preference) for k, v in claims.items()}
+    duplicates = {k: v for k, v in claims.items() if len(v) > 1}
+    return found, unmatched, duplicates

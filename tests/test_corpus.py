@@ -9,7 +9,7 @@ from bibletts.books import BOOKS, book_code, parse_chapter_spec
 from bibletts.config import load_config
 from bibletts.corpus import (load_chapter, make_archive, parse_vpl, prepare_chapter,
                              read_manifest, resolve_splits, restore_archive, write_manifest)
-from bibletts.download import catalogue, guess_book_chapter
+from bibletts.download import catalogue, guess_book_chapter, words_to_number
 
 REPO = Path(__file__).resolve().parents[1]
 
@@ -50,6 +50,14 @@ def test_overlapping_held_out_splits_fail():
     ("1_Corinthians-13.mp3", ("1CO", 13)),
     ("40_005.mp3", ("MAT", 5)),
     ("Jude.mp3", ("JUD", 1)),
+    # The two eBible layouts seen in notebook 00.
+    ("https://ebible.org/eng-web/audio/19_Psalms/0549%20Psalms-Seventy%20One%20%281%29.mp3", ("PSA", 71)),
+    ("https://ebible.org/webaudio/Psalm001.mp3", ("PSA", 1)),
+    ("0480 Psalms-One Hundred Nineteen.mp3", ("PSA", 119)),
+    ("0930 Matthew-Twenty Eight.mp3", ("MAT", 28)),
+    ("1190 First Corinthians-Thirteen.mp3", ("1CO", 13)),
+    ("0315 Second Kings-Five.mp3", ("2KI", 5)),
+    ("Third John.mp3", ("3JN", 1)),
     ("readme.mp3", None),
 ])
 def test_guess_book_chapter(name, expected):
@@ -62,10 +70,21 @@ def test_guess_with_regex():
 
 
 def test_catalogue_reports_duplicates():
-    with pytest.raises(ValueError):
-        catalogue(["MAT_01.mp3", "Matthew-1.mp3"])
-    found, unmatched = catalogue(["MAT_01.mp3", "notes.mp3"])
-    assert found == {("MAT", 1): "MAT_01.mp3"} and unmatched == ["notes.mp3"]
+    found, unmatched, dups = catalogue(["Psalm 23 (1).mp3", "Psalm 23.mp3", "notes.mp3"])
+    assert found == {("PSA", 23): "Psalm 23.mp3"}       # the copy marker loses
+    assert unmatched == ["notes.mp3"]
+    assert dups == {("PSA", 23): ["Psalm 23 (1).mp3", "Psalm 23.mp3"]}
+    found, _, dups = catalogue(["MAT_01.mp3"])
+    assert found == {("MAT", 1): "MAT_01.mp3"} and dups == {}
+
+
+@pytest.mark.parametrize("words, value", [
+    (["Seventy", "One", "1"], (71, 2)), (["one"], (1, 1)), (["Twelve"], (12, 1)),
+    (["One", "Hundred", "Nineteen"], (119, 3)), (["One", "Hundred", "And", "Fifty"], (150, 4)),
+    (["Hundred"], None), (["chapter"], None), ([], None),
+])
+def test_words_to_number(words, value):
+    assert words_to_number(words) == value
 
 
 def test_prepare_chapter_end_to_end(tmp_path):

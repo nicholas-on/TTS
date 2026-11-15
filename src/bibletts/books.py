@@ -62,6 +62,9 @@ _ALIASES.update({
 def book_code(token: str) -> str | None:
     """Turn a book code, name or number (1-66) into a USFM code, or None."""
     squashed = _squash(token)
+    for word, digit in (("first", "1"), ("second", "2"), ("third", "3")):
+        if squashed.startswith(word) and len(squashed) > len(word):
+            squashed = digit + squashed[len(word):]
     if squashed.isdigit():
         n = int(squashed)
         return CODES[n - 1] if 1 <= n <= len(CODES) else None
