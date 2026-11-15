@@ -33,10 +33,12 @@ paths:
   local_root: /content/bibletts_data
 
 audio:
-  sample_rate: 22050      # drop to 16000 if the source has nothing above 8 kHz
+  # The eBible MP3s (32-40 kb/s) have nothing above 8 kHz (notebook 00), so
+  # 16 kHz loses nothing and makes every model cheaper.
+  sample_rate: 16000
   n_fft: 1024
-  hop_length: 256         # one frame = 256 / 22050 = 11.6 ms
-  win_length: 1024
+  hop_length: 200         # one frame = 200 / 16000 = 12.5 ms
+  win_length: 800
   n_mels: 80
   fmin: 0
   fmax: 8000
